@@ -1,0 +1,50 @@
+name: Build Windows Installer
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          playwright install chromium
+
+      - name: Build standalone desktop EXE
+        run: |
+          pyinstaller --noconfirm --clean --onefile --windowed --name Trend_Center_Jordan desktop_launcher.py
+
+      - name: Install Inno Setup
+        run: |
+          choco install innosetup --no-progress -y
+
+      - name: Create installer with Inno Setup
+        shell: powershell
+        run: |
+          & "C:\\Program Files (x86)\\Inno Setup 6\\ISCC.exe" installer.iss
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: Trend_Center_Jordan-Installer
+          path: installer_output/Trend_Center_Jordan_Setup.exe
+
+      - name: Upload portable EXE
+        uses: actions/upload-artifact@v4
+        with:
+          name: Trend_Center_Jordan-Portable
+          path: dist/Trend_Center_Jordan.exe
